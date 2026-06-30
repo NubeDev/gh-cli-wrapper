@@ -1,0 +1,18 @@
+[package]
+name = "gh-cli-wrapper"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+rust-version = "1.80"
+description = "Reusable Rust wrapper around the GitHub CLI and its local configuration."
+repository = "https://github.com/NubeDev/gh-cli-wrapper"
+
+[dependencies]
+gh-config = "0.6"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+thiserror = "2"
+
+[dev-dependencies]
+tempfile = "3"
