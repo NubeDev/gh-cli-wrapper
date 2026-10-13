@@ -27,7 +27,10 @@ fn auth_state_uses_gh_auth_status() {
         let gh = fake_gh(temp.path(), 0, "{}");
         let ctx = GhContext::load_with_gh(Gh::with_executable(gh)).unwrap();
 
-        assert_eq!(ctx.auth_state(Some("github.com")), AuthState::Authenticated);
+        assert_eq!(
+            ctx.auth_state(Some("github.com")).unwrap(),
+            AuthState::Authenticated
+        );
     });
 }
 
@@ -40,7 +43,7 @@ fn auth_state_reports_unauthenticated_when_gh_status_fails() {
         let ctx = GhContext::load_with_gh(Gh::with_executable(gh)).unwrap();
 
         assert_eq!(
-            ctx.auth_state(Some("github.com")),
+            ctx.auth_state(Some("github.com")).unwrap(),
             AuthState::Unauthenticated
         );
     });
@@ -63,7 +66,7 @@ fn auth_state_reports_missing_gh() {
         let missing = temp.path().join("does-not-exist");
         let ctx = GhContext::load_with_gh(Gh::with_executable(missing)).unwrap();
 
-        assert_eq!(ctx.auth_state(None), AuthState::GhMissing);
+        assert_eq!(ctx.auth_state(None).unwrap(), AuthState::GhMissing);
     });
 }
 

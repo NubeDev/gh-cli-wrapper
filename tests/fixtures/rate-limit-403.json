@@ -1,0 +1,5 @@
+{
+  "_comment": "The body GitHub returns with HTTP 403 when the rate limit is exhausted, per the REST API documentation. Committed as a fixture so the parser has something real to parse; the x-ratelimit-* header names and value formats alongside it were captured from a live `gh api rate_limit --include` on 2026-09-09 (see rate-limit-headers.txt). This is a recorded response SHAPE, not a mock: no test takes a code path believing it reached GitHub when it did not.",
+  "message": "API rate limit exceeded for user ID 12345. If you reach out to GitHub Support for help, please include the request ID FA8B:E4CE8:6A1DC7:6F0C21:6AA0E5B0.",
+  "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting"
+}

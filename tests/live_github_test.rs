@@ -32,7 +32,7 @@ fn live_clone_branch_commit_push_issue_comment_reopen_and_close(
     let ctx = GhContext::load()?;
     assert!(gh.is_available(), "gh must be available for live tests");
     assert_eq!(
-        ctx.auth_state(Some("github.com")),
+        ctx.auth_state(Some("github.com")).unwrap(),
         gh_cli_wrapper::AuthState::Authenticated
     );
 

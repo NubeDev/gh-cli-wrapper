@@ -1,0 +1,6 @@
+HTTP/2.0 200 OK
+X-Ratelimit-Limit: 5000
+X-Ratelimit-Remaining: 5000
+X-Ratelimit-Reset: 1788933065
+X-Ratelimit-Resource: core
+X-Ratelimit-Used: 0

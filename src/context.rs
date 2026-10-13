@@ -36,21 +36,12 @@ impl GhContext {
         self.hosts.iter().find(|host| host.hostname == hostname)
     }
 
-    /// Check authentication by delegating to `gh auth status`.
-    pub fn auth_state(&self, hostname: Option<&str>) -> AuthState {
-        if !self.gh.is_available() {
-            return AuthState::GhMissing;
-        }
-
-        let mut args = vec!["auth", "status"];
-        if let Some(hostname) = hostname {
-            args.extend(["--hostname", hostname]);
-        }
-
-        match self.gh.args(args) {
-            Ok(_) => AuthState::Authenticated,
-            Err(_) => AuthState::Unauthenticated,
-        }
+    /// The auth state for `hostname`, read from `gh auth status --json hosts` — see
+    /// [`crate::auth::state`]. A credential `gh` could not check is [`Error::Offline`], not a
+    /// login problem.
+    #[track_caller]
+    pub fn auth_state(&self, hostname: Option<&str>) -> Result<AuthState, Error> {
+        crate::auth::state_with(&self.gh, hostname)
     }
 
     /// Access the underlying `gh` runner for custom commands.

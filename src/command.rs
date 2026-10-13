@@ -27,12 +27,24 @@ impl Gh {
         }
     }
 
+    /// A logged command for this executable — the one constructor, so a typed builder's
+    /// call lands in the call log like any other.
+    #[track_caller]
+    pub(crate) fn command(&self) -> Command {
+        crate::call::command_for(&self.executable)
+    }
+
     /// Return whether the executable can be started.
+    #[track_caller]
     pub fn is_available(&self) -> bool {
         self.args(["--version"]).is_ok()
     }
 
     /// Run `gh` with raw args and return captured output.
+    ///
+    /// A failure is classified the way [`crate::run`] classifies it: `gh` missing, rate
+    /// limited, offline, or refused are different [`Error`] variants.
+    #[track_caller]
     pub fn args<I, S>(&self, args: I) -> Result<GhOutput, Error>
     where
         I: IntoIterator<Item = S>,
@@ -42,6 +54,7 @@ impl Gh {
     }
 
     /// Run `gh api <endpoint>` and decode the JSON response.
+    #[track_caller]
     pub fn api_json<T>(&self, hostname: Option<&str>, endpoint: &str) -> Result<T, Error>
     where
         T: DeserializeOwned,
@@ -56,6 +69,7 @@ impl Gh {
     }
 
     /// Run any JSON-producing `gh` command and decode stdout.
+    #[track_caller]
     pub fn json<I, S, T>(&self, args: I) -> Result<T, Error>
     where
         I: IntoIterator<Item = S>,
@@ -66,19 +80,33 @@ impl Gh {
         Ok(serde_json::from_slice(&output.stdout)?)
     }
 
+    #[track_caller]
     fn run<I>(&self, args: I) -> Result<GhOutput, Error>
     where
         I: IntoIterator<Item = OsString>,
     {
-        let output = Command::new(&self.executable)
-            .args(args)
-            .stdin(Stdio::null())
-            .output()?;
+        let args: Vec<OsString> = args.into_iter().collect();
+        let output = crate::call::output(self.command().args(&args).stdin(Stdio::null()))?;
+        let lossy: Vec<String> = args
+            .iter()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect();
+        let argv: Vec<&str> = lossy.iter().map(String::as_str).collect();
+        crate::call::finished(&argv, &output);
 
         if !output.status.success() {
-            return Err(Error::GhStatus {
-                status: output.status,
-                stderr: String::from_utf8_lossy(&output.stderr).trim().to_string(),
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if let Some(limited) = crate::rate_limit::parse(&format!("{stderr}\n{stdout}")) {
+                return Err(limited);
+            }
+            if crate::rate_limit::is_network_error(&stderr) {
+                return Err(Error::Offline(stderr.trim().to_string()));
+            }
+            return Err(Error::Failed {
+                command_line: crate::run::rendered(&argv),
+                code: output.status.code().unwrap_or(-1),
+                stderr: stderr.trim().to_string(),
             });
         }
 
