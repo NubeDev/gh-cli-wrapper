@@ -5,6 +5,8 @@
 //! have four different remedies, so they are four different [`Error`] variants — decided
 //! here, once, so no caller can collapse two of them that another keeps apart.
 
+use serde::de::DeserializeOwned;
+
 use crate::Error;
 
 /// Run `gh <args>` and return stdout, or the failure as the variant its remedy needs.
@@ -38,6 +40,49 @@ pub fn stdout_as(args: &[&str], command_line: String) -> Result<Vec<u8>, Error> 
         code: output.status.code().unwrap_or(-1),
         stderr: stderr.trim().to_string(),
     })
+}
+
+/// [`stdout`], as text — what most callers want from a `gh` subcommand.
+#[track_caller]
+pub fn text(args: &[&str]) -> Result<String, Error> {
+    text_as(args, rendered(args))
+}
+
+/// [`stdout_as`], as text.
+#[track_caller]
+pub fn text_as(args: &[&str], command_line: String) -> Result<String, Error> {
+    let stdout = stdout_as(args, command_line)?;
+    Ok(String::from_utf8_lossy(&stdout).into_owned())
+}
+
+/// [`stdout`] for its exit status alone — a write that confirms on stderr and prints nothing
+/// worth parsing.
+#[track_caller]
+pub fn status(args: &[&str]) -> Result<(), Error> {
+    stdout(args).map(drop)
+}
+
+/// [`stdout`], parsed as JSON. A body that does not parse is a [`Error::Failed`] naming the
+/// command, not a bare decode error with no context.
+#[track_caller]
+pub fn json<T: DeserializeOwned>(args: &[&str]) -> Result<T, Error> {
+    let stdout = stdout(args)?;
+    serde_json::from_slice(&stdout).map_err(|e| Error::Failed {
+        command_line: rendered(args),
+        code: 0,
+        stderr: format!("could not parse gh's JSON output: {e}"),
+    })
+}
+
+/// `gh api <path> --paginate`, parsed.
+///
+/// **`--paginate` is not optional for a list.** `gh api` returns one page, and a truncated
+/// list is a wrong answer that looks like a right one. There is no `--slurp` on `gh` 2.45;
+/// `--paginate` already merges JSON *arrays* into one array — which holds for the
+/// array-returning endpoints this is for, and not for an object-returning one.
+#[track_caller]
+pub fn api_paginated<T: DeserializeOwned>(path: &str) -> Result<T, Error> {
+    json(&["api", path, "--paginate"])
 }
 
 /// The same runner, but **a non-zero exit is not a failure** — the response is.

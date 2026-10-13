@@ -35,7 +35,7 @@ fn main() -> Result<(), gh_cli_wrapper::Error> {
 | Module | What it is |
 |---|---|
 | `call` | **The one constructor** every `gh` process is built by: `command()`, `finished()`. Optional JSON-lines call log — off until `set_log_path` names a file — with the call site (`#[track_caller]`), the budget it drew on, and what GitHub charged |
-| `run` | The raw runner for a verb with no typed builder: `stdout`, `stdout_as`, `allowing_failure`, `rendered` |
+| `run` | The raw runner for a verb with no typed builder: `stdout` / `text` / `json` / `status` (and the `_as` forms naming the command line), `api_paginated`, `allowing_failure`, `rendered` |
 | `auth` | `credential()` reads `gh auth status --json hosts` (Valid · Absent · Rejected · Unverified · GhMissing); `state()` projects it onto `AuthState`; `scope::classify` reads a missing-scope refusal; `held_scopes()`; `device_prompt::parse`; `login()` |
 | `rate_limit` | `parse` a refusal (both of GitHub's wordings, headers, a GraphQL refusal's reset), `is_network_error`, the last refusal seen |
 | `graphql` | `graphql(query, vars, paginate)`, `graphql_partial`, `graphql_errors`, `with_cost` |
